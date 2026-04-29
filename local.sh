@@ -1,12 +1,13 @@
 #!/bin/env -S - /bin/bash --norc --noprofile
 # ## HUMAN-CODE - NO AI GENERATED CODE - AGENTS HANDSOFF
 
-# Shant Tchatalbachian - GPL v3 LICENSE included
-## Usage: Accepts: Any url that's a FQDN/IDN (no https://). If there's a link that has a domain.tld/.../[file] it will attempt to fetch the file after verifying the pinning.
-##        Validates: Repo checks attestations for pinned pubkeys as well as checks for expiry and liveness over 1.1.1.1 DoH and optionally checks dnssec.
-##        Returns: $PKI_DONE & If you provided a url/file it returns the file to the current directory with a visible exit 1 on failure and debug.
+## Shant Tchatalbachian - GPL v3 LICENSE included
 ##
-## Future Requirements(gh v2.50+): apt-get -qq update && apt-get -qq install gh
+## Usage: Accepts: $1 = Any url that's a domain/FQDN/IDN.tdl/.../[file] (w/out a protocol://), $2 = A Github.com app client id (optional) for a single use repository_dispatch.
+##        Validates: Repo checks attestations for pinned pubkeys as well as checks for expiry and liveness over 1.1.1.1 DoH and checks dnssec if present.
+##        Returns: If there's a link that has a domain.tld/[filename] the file saves to the current directory with a visible exit 1 on failure.
+##
+## Future Requirements: gh v2.50+ (ubuntu:25.10 - gh v2.46)
 
 run_as=$(id -u -n)
 run_home=/home/$run_as
@@ -38,8 +39,9 @@ fetch.pki() { # $1 = domain/FQDN/IDN
     rm -f *.pem *.der $1.dnssec* && touch $1.dnssec
     dig -r +https +do +domain=$1 +yaml @one.one.one.one -q $1 -t SIG > $1.dnssec
     if [[ "$(cat $1.dnssec | grep -o 'qr rd ra ad')" == "qr rd ra ad" ]]; then
-      cp $1.dnssec $1.dnssec.valid; fi;
-    rm -r $1.dnssec
+      touch $1.dnssec.valid; echo null > $1.dnssec.valid; fi;
+    if [[ -f "$1.dnssec.valid" ]]; then
+      cp -f $1.dnssec $1.dnssec.valid; fi; rm -f $1.dnssec;
   popd > /dev/null
 }
 
@@ -61,9 +63,9 @@ check.against.pki() { # $1 = domain/FQDN/IDN
   $common_tls https://raw.githubusercontent.com/0mniteck/.pki/refs/heads/main/registry/$1.pubkey)
   curl_run2=$(curl $enforce_doh -o $tmp/$1.exp --pinnedpubkey "sha256//$(cat $remote/raw.githubusercontent.com.pubkey | cut -d' ' -f1)" \
   $common_tls https://raw.githubusercontent.com/0mniteck/.pki/refs/heads/main/registry/$1.exp)
-  diff $tmp/$1.pubkey $remote/$1.pubkey || declare -g -- FAIL+=:mismatch.invalidate.pki:$1
-  diff $remote/$1.pubkey $local/$1.pubkey || declare -g -- FAIL+=:mismatch.invalidate.pki:$1
-  diff $local/$1.pubkey $tmp/$1.pubkey || declare -g -- FAIL+=:mismatch.invalidate.pki:$1
+  diff $tmp/$1.pubkey $remote/$1.pubkey || declare -g -- FAIL+=:mismatch.1.invalidate.pki:$1
+  diff $remote/$1.pubkey $local/$1.pubkey || declare -g -- FAIL+=:mismatch.2.invalidate.pki:$1
+  diff $local/$1.pubkey $tmp/$1.pubkey || declare -g -- FAIL+=:mismatch.3.invalidate.pki:$1
 }
 
 check.attest.pki() { # $1 = domain/FQDN/IDN ## NEEDS gh v2.50+ (Ubuntu v2.46)
@@ -141,7 +143,7 @@ PKI_DONE=$(err)
 
 if [[ "$PKI_DONE" == *err* ]]; then
   echo -e "PKI_DONE:_$PKI_DONE\n"
-  if [[ "$PKI_DONE" == *mismatch* && "$2" != "" && "$_RE_EXEC" != "true" ]]; then
+  if [[ "$PKI_DONE" == *mismatch* && "$2" != "" && "$_RE_EXEC" != "true" || "$TEST" != "no" ]]; then
     VERIFY() { # $1 = domain/FQDN/IDN
       echo "--pinnedpubkey \"sha256//$(cat $local/$1.pubkey | cut -d' ' -f1)\" $common_tls"
     }
