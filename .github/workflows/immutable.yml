@@ -50,6 +50,7 @@ jobs:
           pushd ${{github.workspace}}/ > /dev/null
             sha512sum .github/{actions/jekyll,workflows}/* registry/* index.* local.sh > /home/runner/work/_temp/attestations/sha512.sums
           popd > /dev/null
+          cat /home/runner/work/_temp/attestations/sha512.sums
       - name: Generate Attestations for Build Provenance v4
         id: generate_attestation
         uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
