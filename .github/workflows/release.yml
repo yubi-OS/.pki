@@ -5,7 +5,7 @@ on:
   repository_dispatch:
     types:
       - Global_Fetch
-  workflow_dispatch:   
+  workflow_dispatch:
   schedule:
     - cron: '0 0/6 * * *'
   push:
@@ -25,7 +25,9 @@ jobs:
     name: Fetch PKI
     concurrency:
       group: release
-    uses: 0mniteck/.pki/.github/workflows/fetch.yml@9e319694b5aa2f9884414377e48d6bf6afca1e76 # v0.0.247
+    secrets:
+      DOCKER:
+    uses: 0mniteck/.pki/.github/workflows/fetch.yml@1c542c43f70dab2f349e0455072c16b57b3328a0 # v0.0.247
   release-pki:
     name: Release PKI
     concurrency:
