@@ -5,6 +5,7 @@ on:
     outputs:
       URL: 
         value: ${{jobs.immutable-rel.outputs.URL}}
+permissions: {}
 concurrency:
   group: release
   cancel-in-progress: true
@@ -16,10 +17,9 @@ jobs:
     outputs:
       URL: ${{steps.fetch_attestation.outputs.URL}}
     permissions:
-      id-token: write
-      contents: write
+      contents: read
       attestations: write
-      artifact-metadata: write
+      id-token: write
     steps:
       - name: Checkout v6
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -57,13 +57,13 @@ jobs:
         with:
           subject-checksums: '/home/runner/work/_temp/attestations/sha512.sums'
           github-token: '${{github.token}}'
+          create-storage-record: false
       - name: Fetch Attestation ID via Output
         id: fetch_attestation
         run: |
           pushd /home/runner/work/_temp/attestations > /dev/null
-            echo 1. ${{steps.generate_attestation.outputs.bundle-path}} > Runner\ output\ \(log\)
-            echo 2. ${{steps.generate_attestation.outputs.attestation-url}} >> Runner\ output\ \(log\)
-            cat Runner\ output\ \(log\) && popd > /dev/null
+            echo 1. ${{steps.generate_attestation.outputs.bundle-path}} > Runner_output.log
+            echo 2. ${{steps.generate_attestation.outputs.attestation-url}} >> Runner_output.log
           echo "URL=${{steps.generate_attestation.outputs.attestation-url}}" >> $GITHUB_OUTPUT
       - name: Download Attestation (json) via API
         id: download_attestation
@@ -72,7 +72,7 @@ jobs:
             curl -s -L -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${{github.token}}" \
             -H "X-GitHub-Api-Version: 2026-03-10" \
-            ${{steps.generate_attestation.outputs.attestation-url}}/download > Build\ attestation\ \(json\)
+            ${{steps.generate_attestation.outputs.attestation-url}}/download > Build_attestation.json
           popd > /dev/null
       - name: Draft Release via API
         id: draft_release
@@ -98,7 +98,10 @@ jobs:
       - name: Add Assets to Draft
         env:
           GH_TOKEN: ${{github.token}}
-        run: gh release upload $tag /home/runner/work/_temp/attestations/**
+        run: |
+          pushd /home/runner/work/_temp/attestations/ > /dev/null
+            gh release upload $tag Build.attestation.json#Build\ attestation\ \(json\) Runner.output.log#Runner\ output\ \(log\) sha512.sums#sha512sums
+          popd > /dev/null
       - name: Publish Release via API
         run: |
           result=$(curl -s -L -X PATCH \
