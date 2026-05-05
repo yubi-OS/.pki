@@ -3,17 +3,16 @@ run-name: Deploy GH-Pages
 on:
   workflow_call:
 permissions:
-  contents: read
-  pages: write
   id-token: write
+  contents: read
 concurrency:
   group: release
   cancel-in-progress: true
 jobs:
   release-page:
-    runs-on: ubuntu-latest
     environment:
       name: release
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout v6
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -41,11 +40,13 @@ jobs:
           name: 'release'
           path: '_site/'
   push-page:
-    runs-on: ubuntu-latest
+    permissions:
+      pages: write
     environment:
       name: release
       url: ${{steps.deployment.outputs.page_url}}
     needs: release-page
+    runs-on: ubuntu-latest
     steps:
       - name: Deploy to GitHub Pages v5
         id: deployment
