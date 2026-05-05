@@ -64,6 +64,7 @@ jobs:
           pushd /home/runner/work/_temp/attestations > /dev/null
             echo 1. ${{steps.generate_attestation.outputs.bundle-path}} > Runner_output.log
             echo 2. ${{steps.generate_attestation.outputs.attestation-url}} >> Runner_output.log
+            cat Runner_output.log && popd > /dev/null
           echo "URL=${{steps.generate_attestation.outputs.attestation-url}}" >> $GITHUB_OUTPUT
       - name: Download Attestation (json) via API
         id: download_attestation
