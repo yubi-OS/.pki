@@ -1,6 +1,9 @@
 name: 'Build Jekyll for GitHub Pages Securely'
 description: 'A simple GitHub Action for producing pinned Jekyll release artifacts'
 author: 'Github + Shant Tchatalbachian'
+runs:
+  using: docker
+  image: docker://ghcr.io/actions/jekyll-build-pages@sha256:6791ebfd912185ed59bfb5fb102664fa872496b79f87ff8b9cfba292a7345041 #v1.0.13
 branding:
   icon: aperture
   color: purple
@@ -29,6 +32,3 @@ inputs:
     description: 'GitHub token'
     required: true
     default: ${{github.token}}
-runs:
-  using: docker
-  image: docker://ghcr.io/actions/jekyll-build-pages@sha256:6791ebfd912185ed59bfb5fb102664fa872496b79f87ff8b9cfba292a7345041 #v1.0.13
