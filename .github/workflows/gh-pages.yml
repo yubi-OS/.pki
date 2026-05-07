@@ -21,7 +21,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Git Fetch
         run: git fetch && git pull origin main && echo Fetched
-      - name: Set Config.yml
+      - name: Set _config.yml
         run: |
           cat >> ${{github.workspace}}/_config.yml << EOF
           theme: jekyll-theme-cayman
@@ -33,7 +33,7 @@ jobs:
       - name: Setup Github Pages v6
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
       - name: Build with Jekyll Securely
-        uses: 0mniteck/.pki/.github/actions/jekyll/@32292725bd58fa67e8900db501acc3829dd4835e #v0.0.247
+        uses: 0mniteck/.pki/.github/actions/jekyll/@6f492fbf5d54ea15bfe782bd8a4fe0d4703890d2 #v0.0.247
         with:
           token: ${{github.token}}
           destination: './_site'
