@@ -13,8 +13,8 @@ jobs:
   immutable-rel:
     permissions:
       id-token: write
-      attestations: write
       contents: write
+      attestations: write
     environment:
       name: release
     outputs:
