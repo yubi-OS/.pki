@@ -7,26 +7,27 @@ on:
         required: true
         description: 'url of attestation'
         type: string
-permissions:
-  id-token: write
-  contents: write
+permissions: {}
 concurrency:
   group: release
   cancel-in-progress: true
 jobs:
   publish-readme:
+    permissions:
+      id-token: write
+      contents: write
     environment:
       name: release
     runs-on: ubuntu-latest
     steps:
       - name: Checkout v6
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - name: Git fetch
+      - name: Git Fetch
         run: git fetch && git pull origin main && echo Fetched
-      - name: Update Readme
+      - name: Update readme.md
         run: |
           pushd ${{github.workspace}} > /dev/null
-            VER=$(cat index.ver)
+            VER=$(cat index.version)
             sed -i "s/$(echo $(grep Created readme.md))/> #### Attestation Created - v0.0.$VER Immutable Tag/" readme.md
             INP="> - [${{inputs.attested_url}}](${{inputs.attested_url}})"
             sed -i "$(($(grep -n Created readme.md | cut -d':' -f1) + 1))d" readme.md
