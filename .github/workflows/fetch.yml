@@ -6,17 +6,18 @@ on:
       DOCKER:
         description: 'A secret passed from the caller workflow'
         required: true
-permissions:
-  id-token: write
-  contents: write
+permissions: {}
 concurrency:
   group: release
   cancel-in-progress: true
 jobs:
   fetch-validate:
-    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
     environment:
       name: release
+    runs-on: ubuntu-latest
     container:
       credentials:
         username: 0mniteck42
@@ -29,7 +30,7 @@ jobs:
         run: git config --global --add safe.directory /__w/.pki/.pki && git config --global init.defaultBranch main
       - name: Checkout v6
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - name: Git fetch
+      - name: Git Fetch
         run: git fetch && git pull origin main && echo Fetched
       - name: Validate PKI
         shell: bash
@@ -37,8 +38,8 @@ jobs:
           state="$(curl --version | grep curl)\n$(openssl --version)\n$(dig -v)"
           enforce_doh="--disable --doh-cert-status --doh-url https://one.one.one.one/dns-query --resolve one.one.one.one:443:1.1.1.1"
           common_tls="--tlsv1.3 --proto -all,+https --remove-on-error --no-insecure -s"
-          rm -f index.state; touch index.ver index.state
-          echo -n $(($(cat index.ver) + 1)) > index.ver
+          rm -f index.state; touch index.version index.state
+          echo -n $(($(cat index.version) + 1)) > index.version
           echo -e $state > index.state; echo -e $state
           
           validate.pki() { # $1 = domain/FQDN/IDN
@@ -81,8 +82,7 @@ jobs:
               echo "$1.pubkey expired"
               fetch.pki $1 || exit 1
             else
-              validate.pki $1 || fetch.pki $1 || exit 1
-            fi
+              validate.pki $1 || fetch.pki $1 || exit 1; fi;
           }
           
           check.pki() { # $1 = domain/FQDN/IDN
@@ -110,6 +110,6 @@ jobs:
             check.index || exit 1
             git config user.name 'github-actions[bot]'
             git config user.email 'github-actions[bot]@users.noreply.github.com'
-            git add -A && git commit -m "Index number $(cat index.ver) - $(date '+on %m/%d/%y at %H:%M UTC')"
+            git add -A && git commit -m "Index number $(cat index.version) - $(date '+on %m/%d/%y at %H:%M UTC')"
             git push origin HEAD:main
           popd > /dev/null && echo DONE
