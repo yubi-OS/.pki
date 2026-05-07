@@ -26,29 +26,33 @@ jobs:
       group: release
     secrets:
       DOCKER: ${{secrets.DOCKER}}
-    uses: 0mniteck/.pki/.github/workflows/fetch.yml@bb6d607e8977f7a21d2cc7b81804dc6becf88ed6 # v0.0.247
+    uses: 0mniteck/.pki/.github/workflows/fetch.yml@ # v0.0.247
   release-pki:
     name: Release PKI
+    permissions:
+      id-token: write
+      attestations: write
+      contents: write
     concurrency:
       group: release
     needs: fetch-pki
-    uses: 0mniteck/.pki/.github/workflows/immutable.yml@90bfc66bf5b3e1b38b998906d7dae4633abb0474 # v0.0.247
+    uses: 0mniteck/.pki/.github/workflows/immutable.yml@8451461da784614f4b745459046676902cd9f038 # v0.0.247
   attested-rel:
     name: Attest PKI
-    environment:
-      name: release
-    needs: release-pki
     permissions:
       id-token: write
       contents: read
       attestations: read
     concurrency:
       group: release
+    environment:
+      name: release
+    needs: release-pki
     runs-on: ubuntu-latest
     steps:
       - name: Checkout v6
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - name: Git fetch
+      - name: Git Fetch
         run: git fetch && git pull origin main && echo Fetched
       - name: Run gh attestation verify
         env:
@@ -59,8 +63,10 @@ jobs:
             --signer-workflow 0mniteck/.pki/.github/workflows/immutable.yml --digest-alg sha512 || exit 1;
             echo "$I Attested"; done; echo DONE;
   read-me:
-    name: Publish Readme
-    uses: 0mniteck/.pki/.github/workflows/read-me.yml@d2748b9108892c35d35e2c203ed2e7b897e5d1e6 # v0.0.247
+    name: Publish readme.md
+    permissions:
+      id-token: write
+      contents: write
     concurrency:
       group: release
     needs:
@@ -68,6 +74,7 @@ jobs:
       - release-pki
     with:
       attested_url: "${{needs.release-pki.outputs.URL}}"
+    uses: 0mniteck/.pki/.github/workflows/read-me.yml@c01f8ecab9b83d9e1c02a5bfa78f7b60524c77de # v0.0.247
   gh-pages:
     name: Release Github Pages
     permissions: 
@@ -77,4 +84,4 @@ jobs:
     concurrency:
       group: release
     needs: read-me
-    uses: 0mniteck/.pki/.github/workflows/gh-pages.yml@d3d945da30fd098eae4b71990968a2a9c1623af1 # v0.0.247
+    uses: 0mniteck/.pki/.github/workflows/gh-pages.yml@385582b80997ba2c1fdb15b718cc22c452c01395 # v0.0.247
