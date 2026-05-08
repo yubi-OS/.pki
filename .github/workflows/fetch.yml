@@ -39,9 +39,11 @@ jobs:
           state="$(curl --version | grep curl | cut -d' ' -f1-3 )\n$(openssl --version)\n$(dig -v)"
           enforce_doh="--disable --doh-cert-status --doh-url https://one.one.one.one/dns-query --resolve one.one.one.one:443:1.1.1.1"
           common_tls="--tlsv1.3 --proto -all,+https --remove-on-error --no-insecure -s"
-          rm -f index.state; touch index.version index.state
-          echo -n $(($(cat index.version) + 1)) > index.version
-          echo -en $state > index.state; echo -en $state
+          
+          pushd index > /dev/null
+            rm -f index.state; touch index.version index.state
+            echo -n $(($(cat index.version) + 1)) > index.version
+            echo -en $state > index.state; echo -en $state; popd > /dev/null
           
           fetch.pki() { # $1 = domain/FQDN/IDN
             pushd registry > /dev/null
@@ -66,15 +68,15 @@ jobs:
           validate.pki() { # $1 = domain/FQDN/IDN
             curl $enforce_doh --pinnedpubkey "sha256//$(cat registry/$1.pubkey | cut -d' ' -f1)" \
             $common_tls https://$1 > /dev/null || return 1
-            message="\n$e:\nSuccessfully fetched and checked validity for $1"
-            echo -e $message
+            message="\n$e:\nSuccessfully fetched and checked validity for $1"; echo -e $message
             if [[ -f "registry/$1.etag" ]]; then echo -en " --> +etag"; fi;
             if [[ -f "registry/$1.pq" ]]; then echo -en " --> +post_quantum"; fi;
             if [[ -f "registry/$1.dnssec" ]]; then echo -en " --> +dnssec"; fi;
-            echo -e $message >> index.state
-            if [[ -f "registry/$1.etag" ]]; then echo -en " --> +etag" >> index.state; fi;
-            if [[ -f "registry/$1.pq" ]]; then echo -en " --> +post_quantum" >> index.state; fi;
-            if [[ -f "registry/$1.dnssec" ]]; then echo -en " --> +dnssec" >> index.state; fi; return 0
+            pushd index > /dev/null; echo -e $message >> index.state;
+              if [[ -f "../registry/$1.etag" ]]; then echo -en " --> +etag" >> index.state; fi;
+              if [[ -f "../registry/$1.pq" ]]; then echo -en " --> +post_quantum" >> index.state; fi;
+              if [[ -f "../registry/$1.dnssec" ]]; then echo -en " --> +dnssec" >> index.state; fi; 
+            popd > /dev/null; return 0
           }
           
           check.csv() { # $1 = domain/FQDN/IDN
@@ -97,7 +99,7 @@ jobs:
           
           check.index() {
             unset e; declare -g -- e=1;
-            for i in $(cat index.csv | tr ',' '\n' | cat); do
+            for i in $(cat index/index.csv | tr ',' '\n' | cat); do
               check.pki $i || exit 1
               declare -g -- e=$((e + 1))
             done
@@ -111,6 +113,6 @@ jobs:
             clean.registry || exit 1
             check.index || exit 1
             git config user.name 'github-actions[bot]' && git config user.email 'github-actions[bot]@users.noreply.github.com'
-            echo && git add -A && git commit -m "Index number $(cat index.version) - $(date '+on %m/%d/%y at %H:%M UTC')"
+            echo && git add -A && git commit -m "Index number $(cat index/index.version) - $(date '+on %m/%d/%y at %H:%M UTC')"
             git push origin HEAD:main
           popd > /dev/null && echo DONE
