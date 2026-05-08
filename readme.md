@@ -5,6 +5,14 @@
 
 The `.github/workflows` will update, validate, and attest this repo with know domain pubkeys, dnssec response, post quantum state, and their expiries;
 adding into the `registry/` from the list stored in `index/index.csv` every 6 hours.
+
+Auto generated statefile in `index/index.state` hold current available connections.
+
+```
+1:
+Successfully fetched and checked validity for 0mniteck.com
+ --> +etag --> +post_quantum --> +dnssec
+```
 ## 
 
 #### fetch and validate index registry + attest with sigstore + release immutably anywhere from a repo_dispatch api call.
