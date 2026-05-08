@@ -119,7 +119,7 @@ jobs:
             https://api.github.com/repos/0mniteck/.pki/releases/${{steps.draft_release.outputs.responded}} \
             -d '{
               "name":"${{env.TAG}}",
-              "body":"## Attestable - Immutable - Ephemeral\n> #### Attestation Created - ${{env.TAG}} Immutable Tag\n> - [${{env.URL}}](${{env.URL}})\n\n${{steps.draft_release.outputs.response}}\n\nBy: @0mniteck\n",
+              "body":"## Attestable - Immutable - Post Quantum\n> #### Attestation Created - ${{env.TAG}} Immutable Tag\n> - [${{env.URL}}](${{env.URL}})\n\n${{steps.draft_release.outputs.response}}\n\nBy: @0mniteck\n",
               "draft":false,
               "make_latest":"true"
             }') || exit 1
