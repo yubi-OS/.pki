@@ -103,7 +103,7 @@ jobs:
           TAG: ${{steps.git_fetch.outputs.TAG}}
         run: |
           gh release upload ${{env.TAG}} \
-            ${{env.DIR}}/index.state#Index\ State \
+            ${{env.DIR}}/index.state#Index\ State\ \(statefile\) \
             ${{env.DIR}}/sha512.sums#Shasums\ \(sha512\) \
             ${{env.DIR}}/Runner_output.log#Runner\ Output\ \(log\) \
             ${{env.DIR}}/Build_attestation.json#Build\ Attestation\ \(json\) || exit 1
