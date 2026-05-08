@@ -58,7 +58,7 @@ jobs:
         env:
           GH_TOKEN: ${{github.token}}
         run: |
-          for I in .github/{actions/jekyll,workflows}/* registry/* index.* local.sh ; do
+          for I in .github/{actions/jekyll,workflows}/* registry/* index/index.* local.sh ; do
             gh attestation verify $I --repo 0mniteck/.pki --source-ref refs/heads/main \
             --signer-workflow 0mniteck/.pki/.github/workflows/immutable.yml --digest-alg sha512 || exit 1;
             echo "$I Attested"; done; echo DONE;
