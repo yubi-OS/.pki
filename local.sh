@@ -16,10 +16,15 @@ run_home=/home/$run_as
 local=$run_home/.pki/registry
 tmp=$run_home/.pki/local
 remote=./.pki/registry
+
+state="$(curl --version | grep curl | cut -d' ' -f1-3 )\n$(openssl --version)\n$(dig -v)"
 enforce_doh="--disable --doh-cert-status --doh-url https://one.one.one.one/dns-query --resolve one.one.one.one:443:1.1.1.1"
 common_tls="--tlsv1.3 --proto -all,+https --remove-on-error --no-insecure -s"
-mkdir -p $local || FAIL+=:mkdir.$local.pki
-mkdir -p $tmp || FAIL+=:mkdir.$tmp.pki
+
+pushd ./.pki/index > /dev/null
+  rm -f index.state; touch index.state
+  echo -en $state > index.state; popd > /dev/null
+mkdir -p $local $tmp || FAIL+=:mkdir.pki
 
 fetch.with.pki() { # $1 = domain/FQDN/IDN, # $2 = filename-or-/dev/null, # $3 = full_url or blank
   if [[ "$1" == "github.com" ]]; then
@@ -33,18 +38,30 @@ fetch.with.pki() { # $1 = domain/FQDN/IDN, # $2 = filename-or-/dev/null, # $3 = 
 
 fetch.pki() { # $1 = domain/FQDN/IDN
   pushd $local/ > /dev/null
-    curl $enforce_doh $common_tls -w %{certs} https://$1 | sed --sandbox -n "/-----BEGIN/,/-----END/p;/-----END/q" > $1.pem && \
-    openssl x509 -in $1.pem -pubkey -noout > $1.pubkey.pem && openssl x509 -in $1.pem -enddate -noout | tr '\n' '=' > $1.exp && \
-    echo -en $e >> $1.exp && openssl asn1parse -noout -inform pem -in $1.pubkey.pem -out $1.pubkey.der && \
-    openssl dgst -sha256 -binary $1.pubkey.der | openssl base64 | tr '\n' ' ' > $1.pubkey && echo -en $e >> $1.pubkey && \
-    declare -g -- SUCCESS+=:local.fetch.pki:$1 || declare -g -- FAIL+=:local.fetch.pki:$1
-    rm -f *.pem *.der $1.dnssec* && touch $1.dnssec
-    dig -r +https +do +domain=$1 +yaml @one.one.one.one -q $1 -t SIG > $1.dnssec
-    if [[ "$(cat $1.dnssec | grep -o 'qr rd ra ad')" == "qr rd ra ad" ]]; then
-      touch $1.dnssec.valid; echo null > $1.dnssec.valid; fi;
-    if [[ -f "$1.dnssec.valid" ]]; then
-      cp -f $1.dnssec $1.dnssec.valid; fi; rm -f $1.dnssec;
-  popd > /dev/null
+    if [[ -s "$1.etag" ]]; then echo $(cat $1.etag | cut -d' ' -f1) > $1.etag; fi;
+    curl $enforce_doh $common_tls --etag-save $1.etag --etag-compare $1.etag -w %{certs} https://$1 | \
+    sed --sandbox -n "/-----BEGIN/,/-----END/p;/-----END/q" > $1.pem && \
+    openssl x509 -in $1.pem -pubkey -noout > $1.pubkey.pem && openssl x509 -in $1.pem -enddate -noout | \
+    tr '\n' '=' > $1.exp && echo -en $e >> $1.exp && \
+    openssl asn1parse -noout -inform pem -in $1.pubkey.pem -out $1.pubkey.der && \
+    openssl dgst -sha256 -binary $1.pubkey.der | openssl base64 | tr '\n' ' ' > $1.pubkey && \
+    echo -en $e >> $1.pubkey && declare -g -- SUCCESS+=:local.fetch.pki:$1 || exit 1
+    rm -f *.pem *.der $1.pq $1.dnssec
+    if [[ ! -s "$1.etag" ]]; then rm -f $1.etag; else echo -en $(cat $1.etag | tr '\n' ' ') > $1.etag; echo -en ' '$e >> $1.etag; fi;
+    PQC=$(cat <(curl $enforce_doh $common_tls -o /dev/null -v https://$1 2>&1 | grep -e 'SSL certificate verify ok' -e 'SSL connection using' | sed 's/\* /\\n/g' | sed 's/\\nS/S/g' | sed 's/ SSL/SSL/g'))
+    echo -en $PQC | grep -e MLKEM -e MLDSA -e SLHDSA > /dev/null && touch $1.pq && echo -en $PQC > $1.pq && echo -en ' '$e >> $1.pq || printf ''
+    DIG=$(cat <(dig -r +https +do +domain=$1 +yaml @one.one.one.one -q $1 -t SIG | tr '\n' '^'))
+    echo -en $DIG | tr '^' '\n' | grep 'qr rd ra ad' > /dev/null && touch $1.dnssec && echo -en $DIG | tr '^' '\n' > $1.dnssec || printf ''; popd > /dev/null
+}
+
+check.liveness.pki() { # $1 = domain/FQDN/IDN
+  curl $enforce_doh --pinnedpubkey "sha256//$(cat $local/$1.pubkey | cut -d' ' -f1)" \
+  $common_tls https://$1 > /dev/null || declare -g -- FAIL+=:check.liveness.pki:$1
+  message="\n$e:\nSuccessfully fetched and checked validity for $1";
+  pushd ./.pki/index > /dev/null; echo -e $message >> index.state;
+    if [[ -f "$local/$1.etag" ]]; then echo -en " --> +etag" >> index.state; fi;
+    if [[ -f "$local/$1.pq" ]]; then echo -en " --> +post_quantum" >> index.state; fi;
+    if [[ -f "$local/$1.dnssec" ]]; then echo -en " --> +dnssec" >> index.state; fi; popd > /dev/null;
 }
 
 invalidate.pki() { # $1 = domain/FQDN/IDN
@@ -53,11 +70,6 @@ invalidate.pki() { # $1 = domain/FQDN/IDN
   check.pki $1 || declare -g -- FAIL+=:re.check.pki:$1                   # Exists/Expired
   check.against.pki $1 || declare -g -- FAIL+=:re.check.against.pki:$1   # Direct/Full Match
   check.liveness.pki $1 || declare -g -- FAIL+=:re.check.liveness.pki:$1 # Conectivity Check
-}
-
-check.liveness.pki() { # $1 = domain/FQDN/IDN
-  curl $enforce_doh --pinnedpubkey "sha256//$(cat $local/$1.pubkey | cut -d' ' -f1)" \
-  $common_tls https://$1 > /dev/null || declare -g -- FAIL+=:check.liveness.pki:$1 	
 }
 
 check.against.pki() { # $1 = domain/FQDN/IDN
@@ -74,12 +86,10 @@ check.attest.pki() { # $1 = domain/FQDN/IDN ## NEEDS gh v2.50+ (Ubuntu v2.46)
   pushd $remote/ > /dev/null
     gh attestation verify $1.pubkey --repo 0mniteck/.pki --source-ref refs/heads/main \
     --signer-workflow 0mniteck/.pki/.github/workflows/immutable.yml || declare -g -- FAIL+=:check.attest.pki:$1
-    echo "$remote/$1.pubkey Attested"
-  popd > /dev/null
+    popd > /dev/null
   pushd $local/ > /dev/null
     gh attestation verify $1.pubkey --repo 0mniteck/.pki --source-ref refs/heads/main \
     --signer-workflow 0mniteck/.pki/.github/workflows/immutable.yml || invalidate.pki $1
-    echo "$local/$1.pubkey Attested"
   popd > /dev/null
 }
 
@@ -107,15 +117,15 @@ check.pki() { # $1 = domain/FQDN/IDN
   fi
 }
 
-check.index() {
-  unset e; e=1;
+check.index() { # $1 = full_url or blank
+  unset e; declare -g -- e=1;
   for i in $(cat .pki/index/index.csv | tr ',' '\n' | cat); do
-    declare -g -- e=$((e + 1))
     fetch.pki $i || declare -g -- FAIL+=:fetch.pki:$i
     check.pki $i || declare -g -- FAIL+=:check.pki:$i                 # Exists/Expired
     # check.attest.pki $i || declare -g -- FAIL+=:check.attest.pki:$i # gh attestation verify
     check.against.pki $i || declare -g -- FAIL+=:check.against.pki:$i # Direct/Full Match
     check.liveness.pki $i && declare -g -- SUCCESS+=:check.liveness.pki:$i || declare -g -- FAIL+=:check.liveness.pki:$i # Conectivity Check
+    declare -g -- e=$((e + 1))
   done
   if [[ "$1" != "" ]]; then
     url=https://$1
