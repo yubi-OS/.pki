@@ -60,8 +60,14 @@ jobs:
         run: |
           for I in .github/{actions/jekyll,workflows}/* registry/* index/index.* local.sh ; do
             gh attestation verify $I --repo 0mniteck/.pki --source-ref refs/heads/main \
-            --signer-workflow 0mniteck/.pki/.github/workflows/immutable.yml --digest-alg sha512 || exit 1;
-            echo "$I Attested"; done; echo DONE;
+            --signer-workflow 0mniteck/.pki/.github/workflows/immutable.yml --digest-alg sha512 \
+            --predicate-type provenance || exit 1;
+            echo "$I Attested"; done; echo Done checking provenance;
+            for J in index/index.state; do
+            gh attestation verify $J --repo 0mniteck/.pki --source-ref refs/heads/main \
+            --signer-workflow 0mniteck/.pki/.github/workflows/immutable.yml --digest-alg sha512 \
+            --predicate-type release || exit 1;
+            echo "$I Attested"; done; echo DONE checking release;
   read-me:
     name: Publish readme.md
     permissions:
