@@ -4,10 +4,14 @@ description: GitHub Action to manage the immutable/attestable release cycle of 0
 on:
   workflow_dispatch:
     inputs:
+      RUN_CHECK:
+        required: true
+        type: boolean
+        default: true
       RUN_REF:
         required: true
         type: string
-        description: 'pinning for this runners ref'
+        description: 'State pinning for this runners ref'
   repository_dispatch:
     types:
       - Global_Fetch
@@ -23,6 +27,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   fetch-pki:
+    if: ${{inputs.RUN_CHECK == false || inputs.RUN_REF == github.workflow_sha}}
     name: Fetch PKI
     permissions:
       id-token: write
