@@ -45,7 +45,7 @@ fetch.pki() { # $1 = domain/FQDN/IDN
     tr '\n' '=' > $1.exp && echo -en $e >> $1.exp && \
     openssl asn1parse -noout -inform pem -in $1.pubkey.pem -out $1.pubkey.der && \
     openssl dgst -sha256 -binary $1.pubkey.der | openssl base64 | tr '\n' ' ' > $1.pubkey && \
-    echo -en $e >> $1.pubkey && declare -g -- SUCCESS+=:local.fetch.pki:$1 || exit 1
+    echo -en $e >> $1.pubkey && declare -g -- SUCCESS+=:local.fetch.pki:$1 || declare -g -- FAIL+=:local.fetch.pki:$1
     rm -f *.pem *.der $1.pq $1.dnssec
     if [[ ! -s "$1.etag" ]]; then rm -f $1.etag; else echo -en $(cat $1.etag | tr '\n' ' ') > $1.etag; echo -en ' '$e >> $1.etag; fi;
     PQC=$(cat <(curl $enforce_doh $common_tls -o /dev/null -v https://$1 2>&1 | grep -e 'SSL certificate verify ok' -e 'SSL connection using' | sed 's/\* /\\n/g' | sed 's/\\nS/S/g' | sed 's/ SSL/SSL/g'))
