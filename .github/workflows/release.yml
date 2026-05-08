@@ -74,7 +74,7 @@ jobs:
       - release-pki
     with:
       attested_url: ${{needs.release-pki.outputs.URL}}
-    uses: 0mniteck/.pki/.github/workflows/read-me.yml@c01f8ecab9b83d9e1c02a5bfa78f7b60524c77de # v0.0.247
+    uses: 0mniteck/.pki/.github/workflows/read-me.yml@3a5852a387bb7f54af336f50acece56a001cf6c0 # v0.0.247
   gh-pages:
     name: Release Github Pages
     permissions: 
