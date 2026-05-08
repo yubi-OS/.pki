@@ -5,6 +5,8 @@ on:
     outputs:
       URL: 
         value: ${{jobs.immutable-rel.outputs.URL}}
+      SUMS:
+        value: ${{jobs.immutable-rel.outputs.SUMS}}
 permissions: {}
 concurrency:
   group: release
@@ -19,6 +21,7 @@ jobs:
       name: release
     outputs:
       URL: ${{steps.generate_attestation.outputs.attestation-url}}
+      SUMS: ${{steps.add_assets.outputs.SUMS}}
     env:
       DIR: '/home/runner/work/_temp/attestations'
     runs-on: ubuntu-latest
@@ -98,6 +101,7 @@ jobs:
           echo "responded=$responded_id" >> $GITHUB_OUTPUT
           echo "response=$responded_body" >> $GITHUB_OUTPUT
       - name: Add Assets to Draft
+        id: add_assets
         env:
           GH_TOKEN: ${{github.token}}
           TAG: ${{steps.git_fetch.outputs.TAG}}
@@ -107,6 +111,7 @@ jobs:
             ${{env.DIR}}/sha512.sums#Shasums\ \(sha512\) \
             ${{env.DIR}}/Runner_output.log#Runner\ Output\ \(log\) \
             ${{env.DIR}}/Build_attestation.json#Build\ Attestation\ \(json\) || exit 1
+          echo "SUMS=$(sha256sum --tag ${{env.DIR}}/* | cut -d'=' -f2 | sed 's/ /sha256:/g' | tr '\n' ' ')" >> $GITHUB_OUTPUT
       - name: Publish Release via API
         env:
           TAG: ${{steps.git_fetch.outputs.TAG}}
