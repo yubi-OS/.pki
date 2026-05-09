@@ -7,8 +7,7 @@ on:
       RUN_REF:
         required: true
         type: string
-        default: cd57210d555d705f494bf9cfcc40c0d0c82462f1
-        description: 'State pinning to the signers ref'
+        description: 'State pinning to the immutable signers ref'
   repository_dispatch:
     types:
       - Global_Fetch
@@ -72,7 +71,7 @@ jobs:
           GH_TOKEN: ${{github.token}}
           TAG: ${{steps.git_fetch.outputs.TAG}}
           SUMS: ${{needs.release-pki.outputs.SUMS}}
-          SIGNER: ${{inputs.RUN_REF}}
+          SIGNER: ${{inputs.RUN_REF || 'cd57210d555d705f494bf9cfcc40c0d0c82462f1'}}
           SIGNER_WF: 0mniteck/.pki/.github/workflows/immutable.yml
         timeout-minutes: 10
         run: |
