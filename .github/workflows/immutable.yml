@@ -7,6 +7,8 @@ on:
         value: ${{jobs.immutable-rel.outputs.URL}}
       SUMS:
         value: ${{jobs.immutable-rel.outputs.SUMS}}
+      SIGNER:
+        value: ${{jobs.immutable-rel.outputs.SIGNER}}
 permissions: {}
 concurrency:
   group: release
@@ -22,6 +24,7 @@ jobs:
     outputs:
       URL: ${{steps.generate_attestation.outputs.attestation-url}}
       SUMS: ${{steps.add_assets.outputs.SUMS}}
+      SIGNER: ${{github.workflow_sha}}
     env:
       DIR: '/home/runner/work/_temp/attestations'
     runs-on: ubuntu-latest
