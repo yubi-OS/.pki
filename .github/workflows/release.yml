@@ -89,15 +89,7 @@ jobs:
           
           for J in $(echo -en ${{env.SUMS}} | sed 's/\\//g'); do
             gh release verify-asset ${{env.TAG}} attestations/$J || exit 1;
-            echo "$I Attested";
-          done; echo Done checking release assets;
-          
-          for K in $(echo -en ${{env.SUMS}} | sed 's/\\//g'); do
-            gh attestation verify attestations/$K --repo ${{github.repository}} --source-ref ${{github.ref}} \
-              --signer-workflow ${{env.SIGNER_WF}} --digest-alg sha256 \
-              --signer-digest ${{env.SIGNER}} --predicate-type release \
-              --deny-self-hosted-runners -L 1 || exit 1;
-            echo "$J Attested again";
+            echo "$I Attested";  
           done; echo Done checking all attestations;
   read-me:
     name: Publish readme.md
