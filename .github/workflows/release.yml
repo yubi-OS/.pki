@@ -67,22 +67,35 @@ jobs:
       - name: Checkout v6
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Git Fetch
-        run: git fetch && git pull origin main && echo Fetched
+        id: git_fetch
+        run: |
+          git fetch && git pull origin main && echo Fetched
+          echo "TAG=v0.0.$(cat index/index.version)" >> $GITHUB_OUTPUT
       - name: Run gh attestation verify
         env:
           GH_TOKEN: ${{github.token}}
           SUMS: ${{needs.release-pki.outputs.SUMS}}
+          TAG: ${{steps.git_fetch.outputs.TAG}}
         run: |
           for I in .github/{actions/jekyll,workflows}/* registry/* index/index.* local.sh ; do
             gh attestation verify $I --repo 0mniteck/.pki --source-ref refs/heads/main \
-              --signer-workflow 0mniteck/.pki/.github/workflows/immutable.yml --digest-alg sha512 \
-              --predicate-type provenance || exit 1;
+              --signer-workflow  ${{job.workflow_file_path.immutable-rel}} --digest-alg sha512 \
+              --signer-digest ${{job.workflow_sha.immutable-rel}} --predicate-type provenance \
+              --deny-self-hosted-runners -L 1 || exit 1;
             echo "$I Attested"; done; echo Done checking provenance;
-            for J in $(echo -en ${{env.SUMS}} | sed 's/\\//g'); do
-            gh attestation verify $J --repo 0mniteck/.pki --source-ref refs/heads/main \
-              --signer-workflow 0mniteck/.pki/.github/workflows/immutable.yml --digest-alg sha256 \
-              --predicate-type release || exit 1;
-            echo "$J Attested"; done; echo Done checking release;
+            gh release verify ${{env.TAG}} || exit 1; mkdir -p attestations/
+            echo Done checking release by tag;
+            gh release download ${{env.TAG}} -p '*.json' -p '*.log' -p '*.state' -p '*.sums' -D attestations
+          done;
+          for J in $(echo -en ${{env.SUMS}} | sed 's/\\//g'); do
+            gh release verify-asset ${{env.TAG}} attestations/$J || exit 1;
+          done; echo Done checking release assets;
+          for J in $(echo -en ${{env.SUMS}} | sed 's/\\//g'); do
+            gh attestation verify attestations/$J --repo 0mniteck/.pki --source-ref refs/heads/main \
+              --signer-workflow ${{job.workflow_file_path.immutable-rel}} --digest-alg sha256 \
+              --signer-digest ${{job.workflow_sha.immutable-rel}} --predicate-type release \
+              --deny-self-hosted-runners -L 1 || exit 1;
+            echo "$J Attested"; done; echo Done checking;
   read-me:
     name: Publish readme.md
     permissions:
