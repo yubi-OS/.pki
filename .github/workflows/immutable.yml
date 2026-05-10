@@ -24,7 +24,7 @@ jobs:
     outputs:
       URL: ${{steps.generate_attestation.outputs.attestation-url}}
       SUMS: ${{steps.add_assets.outputs.SUMS}}
-      SIGNER: ${{github.workflow_sha}}
+      SIGNER: ${{steps.add_assets.outputs.SIGNER}}
     env:
       DIR: '/home/runner/work/_temp/attestations'
     runs-on: ubuntu-latest
@@ -115,6 +115,7 @@ jobs:
             ${{env.DIR}}/Runner_output.log#Runner\ Output\ \(log\) \
             ${{env.DIR}}/Build_attestation.json#Build\ Attestation\ \(json\) || exit 1
           echo SUMS=$(ls ${{env.DIR}}/ | sed -z 's/\n/\\ /g') >> $GITHUB_OUTPUT
+          echo SIGNER=${{github.workflow_sha}} >> $GITHUB_OUTPUT
       - name: Publish Release via API
         env:
           TAG: ${{steps.git_fetch.outputs.TAG}}
