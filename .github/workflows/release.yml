@@ -45,7 +45,7 @@ jobs:
     concurrency:
       group: release
     needs: fetch-pki
-    uses: 0mniteck/.pki/.github/workflows/immutable.yml@70b1aa53705db3ab9b7aab98e9bea1b05eec525d # v0.0.279
+    uses: 0mniteck/.pki/.github/workflows/immutable.yml@6329394417460630b845ac97a38efd6d1167a3c9 # v0.0.279
   attested-rel:
     name: Attest PKI
     permissions:
@@ -71,7 +71,8 @@ jobs:
           GH_TOKEN: ${{github.token}}
           TAG: ${{steps.git_fetch.outputs.TAG}}
           SUMS: ${{needs.release-pki.outputs.SUMS}}
-          SIGNER: ${{inputs.RUN_REF || '70b1aa53705db3ab9b7aab98e9bea1b05eec525d'}} # v0.0.279
+          SIGN: ${{needs.release-pki.outputs.SIGNER}}
+          SIGNER: ${{inputs.RUN_REF || '6329394417460630b845ac97a38efd6d1167a3c9'}} # v0.0.279
           SIGNER_WF: 0mniteck/.pki/.github/workflows/immutable.yml
         timeout-minutes: 10
         run: |
