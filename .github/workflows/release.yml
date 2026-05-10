@@ -71,7 +71,7 @@ jobs:
           GH_TOKEN: ${{github.token}}
           TAG: ${{steps.git_fetch.outputs.TAG}}
           SUMS: ${{needs.release-pki.outputs.SUMS}}
-          SIGNER: ${{inputs.RUN_REF || 'cd57210d555d705f494bf9cfcc40c0d0c82462f1'}}
+          SIGNER: ${{inputs.RUN_REF || '4d101c99b0d87ec4e96e15661b6d383baf87e8c0'}}
           SIGNER_WF: 0mniteck/.pki/.github/workflows/immutable.yml
         timeout-minutes: 10
         run: |
