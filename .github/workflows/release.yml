@@ -121,4 +121,4 @@ jobs:
     concurrency:
       group: release
     needs: gh-pages
-    uses: 0mniteck/.pki/.github/workflows/sync.yml@5a31c7417d6f72e23db908a495aea1e88bb73c43 # v0.0.278
+    uses: 0mniteck/.pki/.github/workflows/sync.yml@481f1d7706ce1c5e8374c68368e3e0a1e8eb4e94 # v0.0.278
