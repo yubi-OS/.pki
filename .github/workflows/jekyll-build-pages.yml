@@ -22,7 +22,7 @@ on:
       build_revision:
         description: 'The SHA-1 of the git commit for which the build is running. Default to GITHUB_SHA.'
         required: false
-        default: ${{ github.sha }}
+        default: ${{github.sha}}
         type: string
       verbose:
         description: 'Verbose output'
@@ -32,7 +32,7 @@ on:
       token:
         description: 'GitHub token'
         required: true
-        default: ${{ github.token }}
+        default: ${{github.token}}
         type: string
 jobs:
   job_id:
