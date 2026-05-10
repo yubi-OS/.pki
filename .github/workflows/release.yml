@@ -1,6 +1,6 @@
 name: Release
 run-name: Release
-description: 'GitHub Action to manage the immutable/attestable release cycle of 0mniteck/.pki pinned at tag v0.0.279'
+description: 'GitHub Action to manage the immutable/attestable release cycle of 0mniteck/.pki pinned at tag v0.0.281'
 on:
   workflow_dispatch:
     inputs:
